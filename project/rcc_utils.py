@@ -1,7 +1,10 @@
 import json
 import os
 
-from rcc_conf import RESEARCH_METHODS_FILE
+from rcc_conf import (
+    PARSED_PUB_PATH, DATASET_CITATION_FILE, CACHE_PUB_FILE,
+    RESEARCH_METHODS_FILE
+)
 
 
 def json_from_file(filename):
@@ -57,26 +60,31 @@ def _exact_research_method_match(pub, rmethods_graph):
     return result if result else None
 
 
-def load_rcc_dataset(conf, force_compute=False):
-    """ This function loads rcc parsed publications.
-        The publications are parsed using Allen AI science parser.
-        The loaded dataset is cached into a json file,
-        and subsequent data load utilizes cache file.
+def load_rcc_train_dataset(data_path, force_compute=False):
+    """ This function loads rcc parsed publications for training.dataset.
+        We assume that research methods file and `data_set_citations.json`
+        are available in the folder.
+        We also expect the parsed publications (parsed using
+        AllenAI science parser) are available too.
+        The loaded dataset is cached into a json file, and subsequent data
+        load utilizes cache file.
         Input:
-            - conf: rcc_conf.CONF['train'] or rcc_conf.CONF['dev'] or
-            rcc_conf.CONF['test'].
+            - data_path: data folder containing `publications.json`,
+                         `files/json/` folder containing parsed publication.
             - force_compute: if True, then we recompute everything and ignore
-            cache file.
+                             cache file.
         Output:
             return a list of parsed publications
     """
-    if os.path.isfile(conf['rcc_cache']) and not force_compute:
-        return json_from_file(conf['rcc_cache'])
+    cache_train_file = data_path + CACHE_PUB_FILE
+    if os.path.isfile(cache_train_file) and not force_compute:
+        return json_from_file(cache_train_file)
 
-    files = [os.path.join(conf['parsed_pub_path'], f)
-             for f in os.listdir(conf['parsed_pub_path'])]
+    parsed_pub_path = data_path + PARSED_PUB_PATH
+    files = [os.path.join(parsed_pub_path, f)
+             for f in os.listdir(parsed_pub_path)]
     parsed_pubs = [json_from_file(f) for f in files]
-    citations = json_from_file(conf['citation'])
+    citations = json_from_file(data_path + DATASET_CITATION_FILE)
     citing_pubs = set([citation['publication_id'] for citation in citations])
     rmethods_graph = json_from_file(RESEARCH_METHODS_FILE)['@graph']
 
@@ -96,18 +104,58 @@ def load_rcc_dataset(conf, force_compute=False):
             print('{} publication processed.'.format(count))
 
     # cache consolidated dataset
-    with open(conf['rcc_cache'], 'w') as f:
+    with open(cache_train_file, 'w') as f:
         f.write(json.dumps(parsed_pubs))
     return parsed_pubs
 
 
-def load_rcc_cache_dataset(conf):
+def load_rcc_test_dataset(data_path, force_compute=False):
+    """ This function loads rcc parsed publications for test.dataset.
+        We assume that research methods file is available in the folder.
+        We also expect the parsed publications (parsed using
+        AllenAI science parser) are available too.
+        The loaded dataset is cached into a json file, and subsequent data
+        load utilizes cache file.
+        Input:
+            - data_path: data folder containing `publications.json`,
+                         `files/json/` folder containing parsed publication.
+            - force_compute: if True, then we recompute everything and ignore
+                             cache file.
+        Output:
+            return a list of parsed publications
+    """
+    cache_train_file = data_path + CACHE_PUB_FILE
+    if os.path.isfile(cache_train_file) and not force_compute:
+        return json_from_file(cache_train_file)
+
+    parsed_pub_path = data_path + PARSED_PUB_PATH
+    files = [os.path.join(parsed_pub_path, f)
+             for f in os.listdir(parsed_pub_path)]
+    parsed_pubs = [json_from_file(f) for f in files]
+    rmethods_graph = json_from_file(RESEARCH_METHODS_FILE)['@graph']
+
+    count = 0
+    for pub in parsed_pubs:
+        # Research method information
+        pub['rmethods'] = _exact_research_method_match(pub, rmethods_graph)
+
+        count += 1
+        if count % 200 == 0:
+            print('{} publication processed.'.format(count))
+
+    # cache consolidated dataset
+    with open(cache_train_file, 'w') as f:
+        f.write(json.dumps(parsed_pubs))
+    return parsed_pubs
+
+
+def load_rcc_cache_dataset(data_path):
     """ This function loads cache dataset which contain parsed publication
         information and additional contextual information such as citation
         information and research methods
     """
-    if os.path.isfile(conf['rcc_cache']):
-        return json_from_file(conf['rcc_cache'])
+    cache_file = data_path + CACHE_PUB_FILE
+    if os.path.isfile(cache_file):
+        return json_from_file(cache_file)
     else:
-        raise ValueError('Cache file {} does not exist.'
-                         .format(conf['rcc_cache']))
+        raise ValueError('Cache file {} does not exist.'.format(cache_file))
