@@ -13,4 +13,6 @@ This project contains few important folders:
 - models: contains all learning models.
 - resources: contains resource files such as SAGE research methods and research fields.
 - tools: contains external packages such as AllenAI Science Parse.
+- data: contains dataset (for training only).
+
 All main codes are under `project/` folder.
