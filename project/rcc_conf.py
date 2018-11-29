@@ -13,6 +13,9 @@ PUB_METADATA_FILE = 'publications.json'
 DATASET_CITATION_FILE = 'data_set_citations.json'
 CACHE_PUB_FILE = 'pub_cache.json'
 
+# Test set configuration
+TEST_FILE = 'publications.json'
+
 # Output configuration
 DATASET_CITATION_OUTFILE = 'data_set_citations.json'
 DATASET_MENTION_OUTFILE = 'data_set_mentions.json'

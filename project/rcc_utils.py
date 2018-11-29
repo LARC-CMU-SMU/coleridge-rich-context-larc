@@ -124,9 +124,9 @@ def load_rcc_test_dataset(data_path, force_compute=False):
         Output:
             return a list of parsed publications
     """
-    cache_train_file = data_path + CACHE_PUB_FILE
-    if os.path.isfile(cache_train_file) and not force_compute:
-        return json_from_file(cache_train_file)
+    cache_file = data_path + CACHE_PUB_FILE
+    if os.path.isfile(cache_file) and not force_compute:
+        return json_from_file(cache_file)
 
     parsed_pub_path = data_path + PARSED_PUB_PATH
     files = [os.path.join(parsed_pub_path, f)
@@ -143,9 +143,10 @@ def load_rcc_test_dataset(data_path, force_compute=False):
         if count % 200 == 0:
             print('{} publication processed.'.format(count))
 
-    # cache consolidated dataset
-    with open(cache_train_file, 'w') as f:
-        f.write(json.dumps(parsed_pubs))
+    # convert to dictionary for quick reference in cached dataset
+    parsed_pubs_dict = {p['name'][:-4]: p for p in parsed_pubs}
+    with open(cache_file, 'w') as f:
+        f.write(json.dumps(parsed_pubs_dict))
     return parsed_pubs
 
 
