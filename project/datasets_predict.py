@@ -36,12 +36,12 @@ def _make_prediction(models, metadata, parsed_pub):
     }
 
 
-def _predict(models, parsed_data, output_dir):
+def _predict(models, input_dir, output_dir):
     """ This function predict dataset citations
     """
-    print('Test data: {}'.format(args.input_dir))
+    print('Test data: {}'.format(input_dir))
     print('Loading test data...')
-    parsed_pubs_test = load_rcc_test_dataset(args.input_dir)
+    parsed_pubs_test = load_rcc_test_dataset(input_dir)
     test_list = json_from_file(args.input_dir + TEST_FILE)
 
     print('Running prediction...')
