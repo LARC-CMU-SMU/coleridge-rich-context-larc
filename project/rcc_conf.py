@@ -9,6 +9,7 @@ RAND_SEED = 2018
 # Data
 # Train set configuration
 PARSED_PUB_PATH = 'files/json/'
+TEXT_PUB_PATH  = 'files/text/'
 PUB_METADATA_FILE = 'publications.json'
 DATASET_CITATION_FILE = 'data_set_citations.json'
 CACHE_PUB_FILE = 'pub_cache.json'

@@ -1,7 +1,16 @@
 import argparse
 import json
+import numpy as np
+import math
+import scipy
+import os
+import pickle
 
+from nltk import word_tokenize
 from sklearn.externals import joblib
+from sklearn.feature_extraction.text import CountVectorizer
+import sentence_filtering
+
 from rcc_conf import TEST_FILE, DATASET_CITATION_OUTFILE
 from rcc_utils import json_from_file, load_rcc_test_dataset
 from dataset_detect_train import FeatureGroupExtractor
@@ -10,13 +19,77 @@ from dataset_detect_train import FeatureGroupExtractor
 MODEL_PATH = 'models/'
 DATASET_DETECT_MODEL = MODEL_PATH + 'dataset_detect.model'
 
+DATASET_ID_MAPPING = MODEL_PATH + 'dataset_mapping.model.pkl'
+DATASET_CON_PROB = MODEL_PATH + 'dataset_con_probs.model.mpkl'
+DATASET_VECTORIZER = MODEL_PATH + 'dataset_vectorizer.model.pkl'
+DATASET_ENTITY_WEIGHT = MODEL_PATH + 'dataset_entity_weights.model.pkl'
+
 
 def _load_models():
     print('Loading models...')
     svm_clf = joblib.load(DATASET_DETECT_MODEL)
-    # Amila: load other models below, we put all models in dictionary
 
-    return {'detector': svm_clf}
+    cv = pickle.load(open(DATASET_VECTORIZER, 'rb'))
+    con_prob = pickle.load(open(DATASET_CON_PROB, 'rb'))
+    entity_w = pickle.load(open(DATASET_ENTITY_WEIGHT, 'rb'))
+    dataset_id = pickle.load(open(DATASET_ID_MAPPING, 'rb'))
+
+    return {
+        'detector': svm_clf,
+        'dataset_mapping': dataset_id,
+        'cond_probs': con_prob,
+        'entity_weights': entity_w,
+        'vectorizer': vec
+            }
+
+#for a given text chunk, this ranks the datasets
+def rank_dataset(sentence, con_prob, vocab, dataset_id, entity_weight=None, is_entity_weight = True):
+    words = word_tokenize(sentence.lower())
+    dataset_score = np.zeros((con_prob.shape[0],))
+
+    for word in words:
+        if word not in vocab.keys():
+            continue
+
+        index = vocab[word]
+
+        if is_entity_weight:
+            dataset_score = dataset_score + entity_w[index] * np.log(con_prob[:,index])
+        else:
+            dataset_score = dataset_score + np.log(con_prob[:,index])
+
+    args = np.argsort(dataset_score.reshape(1,-1))[0,-5:]
+
+    prob_list = dataset_score[args]
+    id_list = np.array(dataset_id)[args]
+
+    return id_list, prob_list
+
+#select best k datasets
+def select_k_best(arg_list, prob_list):
+    top_k = []
+    s_margin = 0.2
+    threshold = 1/len(prob_list) + s_margin * 1/len(prob_list)
+
+    prob_list_mod = []
+    for i in range(len(prob_list)):
+        prob_list_mod.append(prob_list[i]-prob_list[0])
+
+    #normalize
+    tot = 0
+    for i in prob_list_mod:
+        tot += i
+
+    if tot != 0:
+        for id, i in enumerate(prob_list_mod):
+            prob_list_mod[id] = prob_list_mod[id]/tot
+
+        for i in range(len(prob_list_mod)):
+            if prob_list_mod[-i-1] > threshold:
+                top_k.append(arg_list[-i-1])
+
+    return top_k, prob_list_mod[-len(top_k):]
+
 
 
 def _make_prediction(models, metadata, parsed_pub):
@@ -26,14 +99,23 @@ def _make_prediction(models, metadata, parsed_pub):
     if citing_pred[0] == 0:
         return None
 
-    # Amila: Code for Dataset recognition section and mention detection below
+    publication_id = str(metadata['publication_id'])
+    PUBLICATION_PATH = args.input_dir + TEXT_PUB_PATH + publication_id + '.txt'
+    mentions = sf_obj.final_approach(PUBLICATION_PATH)
+    id_list, prob_list = rank_dataset(' '.join(mentions), models['cond_probs'], models['vectorizer'].vocabulary_, \
+        models['dataset_mapping'], entity_weight=None, is_entity_weight = False)
+    id_list, prob_list = select_k_best(id_list, prob_list)
 
-    return {
-        'publication_id': metadata['publication_id'],
-        'data_set_id': -1,
-        'score': 0.00,
-        'mention_list': []
-    }
+    result = []
+    for i in range(len(id_list)):
+        result.append({
+            'publication_id': metadata['publication_id'],
+            'data_set_id': int(id_list[-i-1]),
+            'score': round(prob_list[-i-1],2),
+            'mention_list': []
+        })
+
+    return result
 
 
 def _predict(models, input_dir, output_dir):
@@ -51,14 +133,14 @@ def _predict(models, input_dir, output_dir):
         pred = _make_prediction(models, test, pub)
         if pred is None:
             continue
-        predictions.append(pred)
+
+        predictions = prediction + pred
 
     # Save predictions to DATASET_CITATION_OUTFILE
     with open(output_dir + DATASET_CITATION_OUTFILE, 'w') as f:
         f.write(json.dumps(predictions))
 
     # Save extracted mentions to DATASET_MENTION_OUTFILE
-
 
 def main(args):
     """ This script predict and extract dataset citation from rcc test folder.
