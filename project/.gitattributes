@@ -1,2 +1,3 @@
 models/*.model filter=lfs diff=lfs merge=lfs -text
 models/*.model.* filter=lfs diff=lfs merge=lfs -text
+tools/science-parse-cli-assembly-2.0.2-SNAPSHOT.jar filter=lfs diff=lfs merge=lfs -text
