@@ -158,14 +158,14 @@ def _make_recommendation(rfields_rec, rt_clf, metadata, parsed_pub):
     return _make_combined_recs(pub_recs, filtered_ref_recs)
 
 
-def _predict(rfields_rec, rt_clf, parsed_data, output_dir):
-    """ This function load test data, recommend research fields, and
-        generate output json file.
+def _predict(rfields_rec, rt_clf, input_dir, output_dir):
+    """ This function loads test data, recommends research fields, and
+        generates output json file.
     """
-    print('Test data: {}'.format(args.input_dir))
+    print('Test data: {}'.format(input_dir))
     print('Loading test data...')
-    parsed_pubs_test = load_rcc_test_dataset(args.input_dir)
-    test_list = json_from_file(args.input_dir + TEST_FILE)
+    parsed_pubs_test = load_rcc_test_dataset(input_dir)
+    test_list = json_from_file(input_dir + TEST_FILE)
 
     rfields = _load_rfields_from_file(RESEARCH_FIELDS_FILE)
     results = []
