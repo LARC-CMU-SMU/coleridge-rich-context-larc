@@ -7,7 +7,6 @@ Python dependencies:
 - python 3.6 via Anaconda
 - scikit-learn 0.20.1
 - pandas
-- distance 0.1.3
 
 ## Project Structure
 This project contains few important folders:

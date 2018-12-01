@@ -3,11 +3,11 @@ import json
 import numpy as np
 import math
 import pickle
-import distance
 
 from nltk import word_tokenize
 from sklearn.externals import joblib
 from sklearn.feature_extraction.text import CountVectorizer
+from tqdm import tqdm
 import sentence_filtering
 import aux_functions as aux_fun
 auxfun=aux_fun.AuxFunClass
@@ -96,29 +96,18 @@ def _select_k_best(arg_list, prob_list):
     return top_k, prob_list_mod[-len(top_k):]
 
 
-def _filter_mentions(text, mentions):
-    THRESHOLD = 0.90
-
-    abbs_list = auxfun.readtoarr2(auxfun, ABBS_PATH)
-    phrs_list = auxfun.readtoarr2(auxfun, PHRS_PATH)
-
+def _filter_mentions(text, mentions, abbs_phrs_list):
     selected_mentions = []
     for mention in mentions:
-        alignment = distance.nlevenshtein(mention, text, method = 2)
-
-        if alignment < THRESHOLD:
-            for item in abbs_list + phrs_list:
-                if item.lower() in mention:
-                    selected_mentions.append(item)
+        for item in abbs_phrs_list:
+            if item.lower() in mention:
+                selected_mentions.append(item)
 
     return list(set(selected_mentions))
 
 
 def _make_prediction(models, metadata, parsed_pub):
-
     citing_pred = models['detector'].predict([parsed_pub])
-    print(citing_pred[0])
-
     if citing_pred[0] == 0:
         return None, None
 
@@ -134,8 +123,13 @@ def _make_prediction(models, metadata, parsed_pub):
 
     paper_results = []
     mention_results = []
+    abbs_list = auxfun.readtoarr2(auxfun, ABBS_PATH)
+    phrs_list = auxfun.readtoarr2(auxfun, PHRS_PATH)
+    abbs_phrs_list = abbs_list + phrs_list
     for i, dataset_id in enumerate(id_list):
-        selected_mentions = _filter_mentions(dataset_text[str(dataset_id)], mentions)
+        selected_mentions = _filter_mentions(dataset_text[str(dataset_id)],
+                                             mentions,
+                                             abbs_phrs_list)
 
         paper_results.append({
             'publication_id': metadata['publication_id'],
@@ -166,7 +160,8 @@ def _predict(models, input_dir, output_dir):
     predictions = []
     mention_prediction = []
 
-    for test in test_list:
+    for test in tqdm(test_list, ascii=True,
+                     desc='Running datasets recognition'):
         pub = parsed_pubs_test[str(test['publication_id'])]
         pred, men_pred = _make_prediction(models, test, pub)
         if pred is None:
@@ -176,10 +171,15 @@ def _predict(models, input_dir, output_dir):
         mention_prediction = mention_prediction + men_pred
 
     # Save predictions to DATASET_CITATION_OUTFILE
-    json.dump(predictions, open(output_dir + DATASET_CITATION_OUTFILE, 'w'), indent = 4)
+    json.dump(predictions,
+              open(output_dir + DATASET_CITATION_OUTFILE, 'w'),
+              indent=4)
 
     # Save extracted mentions to DATASET_MENTION_OUTFILE
-    json.dump(mention_prediction, open(output_dir + DATASET_MENTION_OUTFILE, 'w'), indent = 4)
+    json.dump(mention_prediction,
+              open(output_dir + DATASET_MENTION_OUTFILE, 'w'),
+              indent=4)
+
 
 def main(args):
     """ This script predict and extract dataset citation from rcc test folder.
