@@ -7,6 +7,7 @@ Python dependencies:
 - python 3.6 via Anaconda
 - scikit-learn 0.20.1
 - pandas
+- distance 0.1.3
 
 ## Project Structure
 This project contains few important folders:
@@ -23,11 +24,19 @@ AllenAI Science Parse parses PDF publication papers into following fields: title
 How to run
 ```
 java -Xmx6g -jar bin/science-parse-cli-assembly-2.0.2-SNAPSHOT.jar -o ../data/input/files/json/ ../data/input/files/pdf/
-
-java -Xmx6g -jar tools/science-parse-cli-assembly-2.0.2-SNAPSHOT.jar  -m models/scienceparse/productionModel-v9.dat -b models/scienceparse/productionBibModel-v7.dat -g models/scienceparse/gazetteer-v5.json -o ../data/input/files/json2/ ../data/input/files/pdf/
 ```
 
 ## CLI Snippets
+
+Datasets prediction
+```
+python datasets_predict.py --input_dir ../data/input/ --output_dir ../data/output/
+```
+
+Research methods recommendation
+```
+python rmethods_rec.py --input_dir ../data/input/ --output_dir ../data/output/
+```
 
 Research fields recommendation
 ```
@@ -40,6 +49,12 @@ Train dataset detection
 ```
 python dataset_detect_train.py --input_dir data/train_test/  --output models/dataset_detect.model
 ```
+
+Train research methods recommendation models
+```
+python rmethods_rec_train.py --input data/rmethod_ctx_train_mx100.json --output models/rmethods_rec.model
+```
+
 Train research fields recommendation models
 ```
 python rfields_rec_train.py --input data/rfield_10.json --output models/rfields_rec.model
