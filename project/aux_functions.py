@@ -1,11 +1,11 @@
 # The file contains just some auxiliary functions.
-# The old name of the file was -> "darapruner.py"
-# The name was changed since a lot of functions were removed from the files.
 import re
 import nltk
-from resources import lsarray1
+import lsarray1
 
-class auxfunclass:
+class AuxFunClass:
+
+    
     def __init__(self):
         pass
 
@@ -17,6 +17,7 @@ class auxfunclass:
         for item in mylist:
             fl.append(item.rstrip('\n'))
         return  fl
+
 
     def querysplitter(self,query,abb_refrence):
         lssplits=[]
@@ -44,6 +45,7 @@ class auxfunclass:
 
         return lssplits
 
+
     #find that the seperation of features and extracted words are same
     def sepfinder(self,abb,ls):
         punc= lsarray1.Punctuation + lsarray1.Punctuation1 + lsarray1.Punctuation2 + ["I"] + [" "]
@@ -69,6 +71,7 @@ class auxfunclass:
                             list1.append(item)
                             list2.append(item1)
         return list1,list2
+
 
     def rmovepu(self,item):
         puli=lsarray1.Punctuation2+lsarray1.Punctuation1+lsarray1.Punctuation + ['(', ')']

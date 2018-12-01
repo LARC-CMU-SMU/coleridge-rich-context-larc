@@ -1,7 +1,7 @@
 from nltk.tokenize import sent_tokenize
-from resources import lsarray1
+import lsarray1
 import aux_functions as aux_fun
-auxfun=aux_fun.auxfunclass
+auxfun=aux_fun.AuxFunClass
 import os
 import json
 
@@ -9,7 +9,9 @@ RESOURCE_PATH = 'resources/'
 ABBS_PATH = RESOURCE_PATH + 'listofabb_dataset.txt'
 PHRS_PATH = RESOURCE_PATH + 'listofPhrase_dataset.txt'
 
-class sentence_filter_class:
+class SentenceFilterClass:
+
+
     # This function checks if a special feature exists in a context.
     def sep_checK(self,abb,cont):
             punc= lsarray1.Punctuation + lsarray1.Punctuation1 + lsarray1.Punctuation2 + [' '] + ['s']
@@ -32,6 +34,7 @@ class sentence_filter_class:
                     except:
                         return False
             return False
+
 
     #read papers
     def read_context(self, filename):
@@ -70,12 +73,11 @@ class sentence_filter_class:
            for itemsenasquery in textlist1:
                 if self.sep_checK(itemabb_q,itemsenasquery):
                     neulistofquery= auxfun.querysplitter(auxfun, itemsenasquery, itemabb_q)
-                    #if len(neulistofquery)>1:
-                    #    neulistofquery.pop(0)
                     lsallsplit=lsallsplit+neulistofquery
         textlist1=list(set(lsallsplit))
 
         return textlist1
+
 
 if __name__ == '__main__':
     ma = sentence_filter_class()

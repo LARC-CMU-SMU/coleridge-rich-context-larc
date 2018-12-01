@@ -2,8 +2,6 @@ import argparse
 import json
 import numpy as np
 import math
-import scipy
-import os
 import pickle
 
 from nltk import word_tokenize
@@ -11,7 +9,7 @@ from sklearn.externals import joblib
 from sklearn.feature_extraction.text import CountVectorizer
 import sentence_filtering
 
-from rcc_conf import TEST_FILE, DATASET_CITATION_OUTFILE
+from rcc_conf import TEST_FILE, DATASET_CITATION_OUTFILE, TEXT_PUB_PATH
 from rcc_utils import json_from_file, load_rcc_test_dataset
 from dataset_detect_train import FeatureGroupExtractor
 
@@ -20,7 +18,7 @@ MODEL_PATH = 'models/'
 DATASET_DETECT_MODEL = MODEL_PATH + 'dataset_detect.model'
 
 DATASET_ID_MAPPING = MODEL_PATH + 'dataset_mapping.model.pkl'
-DATASET_CON_PROB = MODEL_PATH + 'dataset_con_probs.model.mpkl'
+DATASET_CON_PROB = MODEL_PATH + 'dataset_con_probs.model.pkl'
 DATASET_VECTORIZER = MODEL_PATH + 'dataset_vectorizer.model.pkl'
 DATASET_ENTITY_WEIGHT = MODEL_PATH + 'dataset_entity_weights.model.pkl'
 
@@ -28,7 +26,6 @@ DATASET_ENTITY_WEIGHT = MODEL_PATH + 'dataset_entity_weights.model.pkl'
 def _load_models():
     print('Loading models...')
     svm_clf = joblib.load(DATASET_DETECT_MODEL)
-
     cv = pickle.load(open(DATASET_VECTORIZER, 'rb'))
     con_prob = pickle.load(open(DATASET_CON_PROB, 'rb'))
     entity_w = pickle.load(open(DATASET_ENTITY_WEIGHT, 'rb'))
@@ -39,11 +36,12 @@ def _load_models():
         'dataset_mapping': dataset_id,
         'cond_probs': con_prob,
         'entity_weights': entity_w,
-        'vectorizer': vec
+        'vectorizer': cv
             }
 
+
 #for a given text chunk, this ranks the datasets
-def rank_dataset(sentence, con_prob, vocab, dataset_id, entity_weight=None, is_entity_weight = True):
+def _rank_dataset(sentence, con_prob, vocab, dataset_id, entity_weight=None, is_entity_weight = True):
     words = word_tokenize(sentence.lower())
     dataset_score = np.zeros((con_prob.shape[0],))
 
@@ -65,8 +63,9 @@ def rank_dataset(sentence, con_prob, vocab, dataset_id, entity_weight=None, is_e
 
     return id_list, prob_list
 
+
 #select best k datasets
-def select_k_best(arg_list, prob_list):
+def _select_k_best(arg_list, prob_list):
     top_k = []
     s_margin = 0.2
     threshold = 1/len(prob_list) + s_margin * 1/len(prob_list)
@@ -90,9 +89,12 @@ def select_k_best(arg_list, prob_list):
 
     return top_k, prob_list_mod[-len(top_k):]
 
+#def _extract_mentions():
+
 
 
 def _make_prediction(models, metadata, parsed_pub):
+
     citing_pred = models['detector'].predict([parsed_pub])
     print(citing_pred[0])
 
@@ -101,10 +103,12 @@ def _make_prediction(models, metadata, parsed_pub):
 
     publication_id = str(metadata['publication_id'])
     PUBLICATION_PATH = args.input_dir + TEXT_PUB_PATH + publication_id + '.txt'
+
+    sf_obj = sentence_filtering.SentenceFilterClass()
     mentions = sf_obj.final_approach(PUBLICATION_PATH)
-    id_list, prob_list = rank_dataset(' '.join(mentions), models['cond_probs'], models['vectorizer'].vocabulary_, \
+    id_list, prob_list = _rank_dataset(' '.join(mentions), models['cond_probs'], models['vectorizer'].vocabulary_, \
         models['dataset_mapping'], entity_weight=None, is_entity_weight = False)
-    id_list, prob_list = select_k_best(id_list, prob_list)
+    id_list, prob_list = _select_k_best(id_list, prob_list)
 
     result = []
     for i in range(len(id_list)):
@@ -128,19 +132,20 @@ def _predict(models, input_dir, output_dir):
 
     print('Running prediction...')
     predictions = []
+
     for test in test_list:
         pub = parsed_pubs_test[str(test['publication_id'])]
         pred = _make_prediction(models, test, pub)
         if pred is None:
             continue
 
-        predictions = prediction + pred
+        predictions = predictions + pred
 
     # Save predictions to DATASET_CITATION_OUTFILE
-    with open(output_dir + DATASET_CITATION_OUTFILE, 'w') as f:
-        f.write(json.dumps(predictions))
+    json.dump(predictions, open(output_dir + DATASET_CITATION_OUTFILE, 'w'), indent = 4)
 
     # Save extracted mentions to DATASET_MENTION_OUTFILE
+
 
 def main(args):
     """ This script predict and extract dataset citation from rcc test folder.
