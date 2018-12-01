@@ -159,8 +159,8 @@ def _make_recommendation(rfields_rec, rt_clf, metadata, parsed_pub):
 
 
 def _predict(rfields_rec, rt_clf, parsed_data, output_dir):
-    """ This function load test data, recommend research fields, and
-        generate output json file.
+    """ This function loads test data, recommends research fields, and
+        generates output json file.
     """
     print('Test data: {}'.format(args.input_dir))
     print('Loading test data...')
