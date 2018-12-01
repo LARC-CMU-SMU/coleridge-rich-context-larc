@@ -159,7 +159,8 @@ def _make_recommendation(rfields_rec, rt_clf, metadata, parsed_pub):
 
 
 def _predict(rfields_rec, rt_clf, parsed_data, output_dir):
-    """ This function predict research fields
+    """ This function load test data, recommend research fields, and
+        generate output json file.
     """
     print('Test data: {}'.format(args.input_dir))
     print('Loading test data...')
@@ -189,9 +190,9 @@ def _predict(rfields_rec, rt_clf, parsed_data, output_dir):
 
 
 def main(args):
-    """ This script predict and extract dataset citation from rcc test folder.
-        It will generate `data_set_citations.json` and
-        `data_set_mentions.json`.
+    """ This script recommends research fields for all publications listed in
+        `publications.json` in input_dir. It will generate output
+        `research_fields.json` in output_dir.
     """
     rfields_rec, rt_clf = _load_models()
     _predict(rfields_rec, rt_clf, args.input_dir, args.output_dir)
@@ -201,8 +202,9 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Recommend research fields  \
                                      for all publications in rcc test folder.')
     parser.add_argument('--input_dir', type=str, required=True,
-                        help='Location of `publication.json`. We assume that \
-                        text and json folder are at this location too.')
+                        help='Location of `publications.json`. We assume that \
+                        json folder containing parsed publication is at this \
+                        location too.')
     parser.add_argument('--output_dir', type=str, required=True,
                         help='Output directory for save the output. ')
     args = parser.parse_args()
