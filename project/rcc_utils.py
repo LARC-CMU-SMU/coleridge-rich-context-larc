@@ -9,7 +9,7 @@ from rcc_conf import (
 
 def json_from_file(filename):
     data = None
-    with open(filename, 'r') as f:
+    with open(filename, 'r', encoding='utf-8') as f:
         data = json.load(f)
     if data is None:
         raise ValueError('Error loading json from {}.'.format(filename))
@@ -122,7 +122,7 @@ def load_rcc_test_dataset(data_path, force_compute=False):
             - force_compute: if True, then we recompute everything and ignore
                              cache file.
         Output:
-            return a list of parsed publications
+            return a dictionary of parsed publications
     """
     cache_file = data_path + CACHE_PUB_FILE
     if os.path.isfile(cache_file) and not force_compute:
@@ -147,7 +147,7 @@ def load_rcc_test_dataset(data_path, force_compute=False):
     parsed_pubs_dict = {p['name'][:-4]: p for p in parsed_pubs}
     with open(cache_file, 'w') as f:
         f.write(json.dumps(parsed_pubs_dict))
-    return parsed_pubs
+    return parsed_pubs_dict
 
 
 def load_rcc_cache_dataset(data_path):
