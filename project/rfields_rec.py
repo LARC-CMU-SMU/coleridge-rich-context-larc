@@ -206,6 +206,6 @@ if __name__ == '__main__':
                         json folder containing parsed publication is at this \
                         location too.')
     parser.add_argument('--output_dir', type=str, required=True,
-                        help='Output directory for save the output. ')
+                        help='Output directory to save the output. ')
     args = parser.parse_args()
     main(args)
