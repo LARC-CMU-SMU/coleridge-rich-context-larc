@@ -1,7 +1,7 @@
 
 # Resource files
 RESEARCH_METHODS_FILE = 'resources/sage_research_methods.json'
-RESEARCH_FIELDS_FILE = 'resources/sage_research_fields.json'
+RESEARCH_FIELDS_FILE = 'resources/sage_research_fields.csv'
 
 # Random seed, for reproducibility
 RAND_SEED = 2018
