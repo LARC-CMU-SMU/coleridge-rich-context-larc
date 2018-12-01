@@ -3,13 +3,16 @@ import json
 import numpy as np
 import math
 import pickle
+import distance
 
 from nltk import word_tokenize
 from sklearn.externals import joblib
 from sklearn.feature_extraction.text import CountVectorizer
 import sentence_filtering
+import aux_functions as aux_fun
+auxfun=aux_fun.AuxFunClass
 
-from rcc_conf import TEST_FILE, DATASET_CITATION_OUTFILE, TEXT_PUB_PATH
+from rcc_conf import TEST_FILE, DATASET_CITATION_OUTFILE, DATASET_MENTION_OUTFILE, TEXT_PUB_PATH, RESOURCE_PATH
 from rcc_utils import json_from_file, load_rcc_test_dataset
 from dataset_detect_train import FeatureGroupExtractor
 
@@ -21,6 +24,9 @@ DATASET_ID_MAPPING = MODEL_PATH + 'dataset_mapping.model.pkl'
 DATASET_CON_PROB = MODEL_PATH + 'dataset_con_probs.model.pkl'
 DATASET_VECTORIZER = MODEL_PATH + 'dataset_vectorizer.model.pkl'
 DATASET_ENTITY_WEIGHT = MODEL_PATH + 'dataset_entity_weights.model.pkl'
+
+ABBS_PATH = RESOURCE_PATH + 'listofabb_dataset.txt'
+PHRS_PATH = RESOURCE_PATH + 'listofPhrase_dataset.txt'
 
 
 def _load_models():
@@ -89,8 +95,23 @@ def _select_k_best(arg_list, prob_list):
 
     return top_k, prob_list_mod[-len(top_k):]
 
-#def _extract_mentions():
 
+def _filter_mentions(text, mentions):
+    THRESHOLD = 0.90
+
+    abbs_list = auxfun.readtoarr2(auxfun, ABBS_PATH)
+    phrs_list = auxfun.readtoarr2(auxfun, PHRS_PATH)
+
+    selected_mentions = []
+    for mention in mentions:
+        alignment = distance.nlevenshtein(mention, text, method = 2)
+
+        if alignment < THRESHOLD:
+            for item in abbs_list + phrs_list:
+                if item.lower() in mention:
+                    selected_mentions.append(item)
+
+    return list(set(selected_mentions))
 
 
 def _make_prediction(models, metadata, parsed_pub):
@@ -99,10 +120,11 @@ def _make_prediction(models, metadata, parsed_pub):
     print(citing_pred[0])
 
     if citing_pred[0] == 0:
-        return None
+        return None, None
 
     publication_id = str(metadata['publication_id'])
     PUBLICATION_PATH = args.input_dir + TEXT_PUB_PATH + publication_id + '.txt'
+    dataset_text = json.load(open(RESOURCE_PATH + 'dataset_text_dict.json', 'r'))
 
     sf_obj = sentence_filtering.SentenceFilterClass()
     mentions = sf_obj.final_approach(PUBLICATION_PATH)
@@ -110,16 +132,26 @@ def _make_prediction(models, metadata, parsed_pub):
         models['dataset_mapping'], entity_weight=None, is_entity_weight = False)
     id_list, prob_list = _select_k_best(id_list, prob_list)
 
-    result = []
-    for i in range(len(id_list)):
-        result.append({
+    paper_results = []
+    mention_results = []
+    for i, dataset_id in enumerate(id_list):
+        selected_mentions = _filter_mentions(dataset_text[str(dataset_id)], mentions)
+
+        paper_results.append({
             'publication_id': metadata['publication_id'],
-            'data_set_id': int(id_list[-i-1]),
-            'score': round(prob_list[-i-1],2),
-            'mention_list': []
+            'data_set_id': int(id_list[i]),
+            'score': round(prob_list[i],2),
+            'mention_list': selected_mentions
         })
 
-    return result
+        for men in selected_mentions:
+            mention_results.append({
+                'publication_id': metadata['publication_id'],
+                'data_set_mention' : men,
+                'score': round(prob_list[i],2)
+                })
+
+    return paper_results, mention_results
 
 
 def _predict(models, input_dir, output_dir):
@@ -132,20 +164,22 @@ def _predict(models, input_dir, output_dir):
 
     print('Running prediction...')
     predictions = []
+    mention_prediction = []
 
     for test in test_list:
         pub = parsed_pubs_test[str(test['publication_id'])]
-        pred = _make_prediction(models, test, pub)
+        pred, men_pred = _make_prediction(models, test, pub)
         if pred is None:
             continue
 
         predictions = predictions + pred
+        mention_prediction = mention_prediction + men_pred
 
     # Save predictions to DATASET_CITATION_OUTFILE
     json.dump(predictions, open(output_dir + DATASET_CITATION_OUTFILE, 'w'), indent = 4)
 
     # Save extracted mentions to DATASET_MENTION_OUTFILE
-
+    json.dump(mention_prediction, open(output_dir + DATASET_MENTION_OUTFILE, 'w'), indent = 4)
 
 def main(args):
     """ This script predict and extract dataset citation from rcc test folder.

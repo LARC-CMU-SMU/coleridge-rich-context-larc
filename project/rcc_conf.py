@@ -22,3 +22,5 @@ DATASET_CITATION_OUTFILE = 'data_set_citations.json'
 DATASET_MENTION_OUTFILE = 'data_set_mentions.json'
 RMETHODS_OUTFILE = 'methods.json'
 RFIELDS_OUTFILE = 'research_fields.json'
+
+RESOURCE_PATH = 'resources/'
