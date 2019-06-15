@@ -1,5 +1,5 @@
-# rcc-02
-Repository for RCC submission
+# coleridge-rich-context-larc
+Code Repository for RCC submission
 
 ## Dependencies
 Scala for AllenAI Science Parse
@@ -22,7 +22,7 @@ AllenAI Science Parse parses PDF publication papers into following fields: title
 
 How to run
 ```
-java -Xmx6g -jar bin/science-parse-cli-assembly-2.0.2-SNAPSHOT.jar -o ../data/input/files/json/ ../data/input/files/pdf/
+java -Xmx6g -jar tools/science-parse-cli-assembly-2.0.2-SNAPSHOT.jar -o ../data/input/files/json/ ../data/input/files/pdf/
 ```
 
 ## CLI Snippets
